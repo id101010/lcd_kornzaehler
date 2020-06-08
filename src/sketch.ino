@@ -90,9 +90,8 @@ unsigned int stop_timer()
 
 /*
  * Printfunction to display values on the lcd screen.
- * And send debug output to the serial console.
  */
-void print_values(float avg_time, float stddev_time, int number)
+void lcd_print_values(float avg_time, float stddev_time, int number)
 {
     // Print data on lcd
     lcd.setCursor(0,0);
@@ -109,11 +108,19 @@ void print_values(float avg_time, float stddev_time, int number)
     lcd.print("n:");
     lcd.setCursor(10,1);
     lcd.print(String(number));
+}
 
-    // Print data on serial interface (as csv)
-    Serial.print("AVG:" + String(avg_time));
+/*
+ * Send information to the serial console.
+ * int count: current number of grains
+ * int diff: timedifference between the last two grains
+ */
+void uart_print_values(long count, float diff)
+{
+    // print data on serial interface (as csv values)
+    Serial.print(String(count));
     Serial.print(',');
-    Serial.print("STD:" + String(stddev_time));
+    Serial.print(String(diff));
     Serial.print("\r\n");
 }
 
@@ -170,7 +177,7 @@ void setup()
         t_fifo[i] = 0;
     }
 
-    print_values(0,0,0);
+    lcd_print_values(0,0,0);
     flag_timer  = false;
     flag_send   = false;
     pinMode(5, OUTPUT);
@@ -187,12 +194,13 @@ void loop()
     if(interval == AVG_INT){
         interval = 0;
         std_dev(); // calculate stddev
-        push_fifo(0); // push a zero else the fifo never clears
-        print_values(average, std_deviation, cnt); // print values
+        //push_fifo(0); // push a zero else the fifo never clears
+        lcd_print_values(average, std_deviation, cnt); // print values
     }
 
     // if there are updated values
     if(flag_send){
+        uart_print_values(cnt, t_diff); // print the total count and the time difference between grains to uart
         flag_send = false; // reset send flag
         push_fifo(t_diff); // update list for avg
     }
